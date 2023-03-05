@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "light_torch"
+version = "0.0.1"
+authors = [
+  { name="HSC" },
+]
+description = "A lightweight pytorch train wrapper package"
+readme = "README.md"
+requires-python = ">=3.7"
+
+[tool.black]
+line-length = 88
+target-version = ['py37']
