@@ -8,6 +8,9 @@ class Module(nn.Module, ABC):
     def __init__(self):
         self.trainer = None
 
+    def predict(self, batch):
+        pass
+
     def on_fit_begin(self):
         pass
 
@@ -56,3 +59,6 @@ class Module(nn.Module, ABC):
             yield self
         finally:
             self.on_val_end()
+
+    def get_state_dict(self):
+        pass
