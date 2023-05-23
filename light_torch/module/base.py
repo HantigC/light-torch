@@ -6,6 +6,7 @@ from torch import nn
 
 class Module(nn.Module, ABC):
     def __init__(self):
+        super().__init__()
         self.trainer = None
 
     def predict(self, batch):
@@ -29,7 +30,7 @@ class Module(nn.Module, ABC):
         self.train()
 
     @abstractmethod
-    def train_step(self, batch, batch_idx, epoch_idx):
+    def train_step(self, batch, batch_idx=None, epoch_idx=None):
         pass
 
     def on_train_end(self):
