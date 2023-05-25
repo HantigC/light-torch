@@ -8,6 +8,10 @@ class Module(nn.Module, ABC):
     def __init__(self):
         super().__init__()
         self.trainer = None
+        self._init()
+
+    def _init(self):
+        self.logboard = {}
 
     def predict(self, batch):
         pass
@@ -38,6 +42,7 @@ class Module(nn.Module, ABC):
 
     @contextmanager
     def on_train(self):
+        self._init()
         self.on_train_begin()
         try:
             yield self
@@ -55,11 +60,23 @@ class Module(nn.Module, ABC):
 
     @contextmanager
     def on_val(self):
+        self._init()
         self.on_val_begin()
         try:
             yield self
         finally:
             self.on_val_end()
+
+    def log(self, name, value):
+        self.logboard[name] = value
+
+    def poplog(self):
+        log = self.logboard
+        self.logboard = {}
+        return log
+
+    def get_report(self):
+        pass
 
     def get_state_dict(self):
         pass
