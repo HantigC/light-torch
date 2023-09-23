@@ -6,21 +6,27 @@ from .module.base import Module
 
 
 class Trainer(nn.Module):
-    def __init__(self, module: Module):
+    def __init__(self, module: Module, accumulation=1):
         super().__init__()
         self.module = module
+        self.accumulation = accumulation
         self.history = []
 
     def train_one_epoch(self, data: DataLoader, epoch, optimizer=None):
         with self.module.on_train():
             with tqdm(total=len(data), desc=f"Train epoch {epoch: 04d}") as tbar:
                 for batch_idx, batch in enumerate(data):
-                    optimizer.zero_grad(set_to_none=True)
                     loss = self.module.train_step(
                         batch, batch_idx=batch_idx, epoch_idx=epoch
                     )
+                    loss /= self.accumulation
                     loss.backward()
-                    optimizer.step()
+                    if (batch_idx % self.accumulation == 0) or (batch_idx + 1) == len(
+                        data
+                    ):
+                        optimizer.step()
+                        optimizer.zero_grad(set_to_none=True)
+
                     logs = self.module.poplog()
                     tbar.set_postfix(logs)
                     tbar.update()
