@@ -4,7 +4,7 @@ from torch import nn
 from torch.utils.data.dataloader import DataLoader
 from tqdm.auto import tqdm
 
-from .module.base import Module
+from .module import Module
 from src.utils.init import default_if_none
 
 
@@ -44,7 +44,7 @@ class Trainer(nn.Module):
                         optimizer.step()
                         optimizer.zero_grad(set_to_none=True)
 
-                    logs = self.module.poplog()
+                    logs = self.module.get_batch_log()
                     tbar.set_postfix(logs)
                     tbar.update()
 
@@ -84,11 +84,11 @@ class Trainer(nn.Module):
         with self.module.on_fit():
             for epoch in range(self.start_at_epoch, epochs + 1):
                 self.train_one_epoch(data, epoch, optimizer)
-                train_metrics_report = self.module.get_report()
+                train_metrics_report = self.module.get_epoch_log()
                 report = {"train": train_metrics_report, "epoch": epoch}
                 if val_data is not None:
                     self.evaluate(val_data, epoch)
-                    eval_metrics_report = self.module.get_report()
+                    eval_metrics_report = self.module.get_epoch_log()
                     report["eval"] = eval_metrics_report
                 self.history.append(report)
                 self.save_checkpoint(epoch + 1)
@@ -98,9 +98,6 @@ class Trainer(nn.Module):
             with tqdm(total=len(data), desc=f"Eval epoch {epoch: 04d}") as tbar:
                 for batch_idx, batch in enumerate(data):
                     self.module.val_step(batch, batch_idx=batch_idx, epoch_idx=epoch)
-                    logs = self.module.poplog()
+                    logs = self.module.get_batch_log()
                     tbar.set_postfix(logs)
                     tbar.update()
-
-    def get_state_dict(self):
-        return {"module": self.module.get_state_dict()}

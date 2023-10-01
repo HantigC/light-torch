@@ -7,6 +7,10 @@ import numpy as np
 class WindowCollector:
     def __init__(self, window_size=None):
         self._windows = defaultdict(lambda: queue.deque(maxlen=window_size))
+        self.window_size = window_size
+
+    def reinit(self):
+        self._windows = defaultdict(lambda: queue.deque(maxlen=self.window_size))
 
     def add_value(self, name, value):
         self._windows[name].append(value)
@@ -20,6 +24,10 @@ class WindowCollector:
 
 class StepCollector:
     def __init__(self):
+        self._accumulators = defaultdict(int)
+        self._amounts = defaultdict(int)
+
+    def reinit(self):
         self._accumulators = defaultdict(int)
         self._amounts = defaultdict(int)
 
