@@ -87,7 +87,6 @@ class Module(nn.Module, ABC):
     @contextmanager
     def on_val(self):
         with torch.no_grad():
-            self._init()
             self.begin_val()
             try:
                 yield self

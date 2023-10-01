@@ -5,6 +5,7 @@ from torch.utils.data.dataloader import DataLoader
 from tqdm.auto import tqdm
 
 from .module import Module
+from .log.cli import CliLog
 from src.utils.init import default_if_none
 
 
@@ -14,6 +15,7 @@ class Trainer(nn.Module):
         module: Module,
         epochs=1,
         accumulation=1,
+        loggers=None,
         optimizer=None,
         save_dir="./",
         name="trainer",
@@ -28,6 +30,9 @@ class Trainer(nn.Module):
         self.epochs = epochs
         self.start_at_epoch = 1
         self.name = name
+        if loggers is None:
+            loggers = [CliLog()]
+        self.loggers = loggers
 
     def train_one_epoch(self, data: DataLoader, epoch, optimizer=None):
         with self.module.on_train():
@@ -55,6 +60,7 @@ class Trainer(nn.Module):
             "optimizer": self.optimizer.state_dict(),
             "module": self.module.state_dict(),
             "save_dir": self.save_dir,
+            "history": self.history,
         }
         torch.save(checkpoint, self._make_pathname())
 
@@ -71,6 +77,11 @@ class Trainer(nn.Module):
         self.optimizer.load_state_dict(checkpoint["optimizer"])
         self.module.load_state_dict(checkpoint["module"])
         self.save_dir = checkpoint["save_dir"]
+        self.history = checkpoint["history"]
+
+    def _log(self, what, epoch_num, stage):
+        for logger in self.loggers:
+            logger.log_at_epoch(what, epoch_num, stage)
 
     def fit(
         self,
@@ -85,17 +96,19 @@ class Trainer(nn.Module):
             for epoch in range(self.start_at_epoch, epochs + 1):
                 self.train_one_epoch(data, epoch, optimizer)
                 train_metrics_report = self.module.get_epoch_log()
+                self._log(train_metrics_report, epoch, "TRAIN")
                 report = {"train": train_metrics_report, "epoch": epoch}
                 if val_data is not None:
                     self.evaluate(val_data, epoch)
                     eval_metrics_report = self.module.get_epoch_log()
+                    self._log(eval_metrics_report, epoch, "VAL")
                     report["eval"] = eval_metrics_report
                 self.history.append(report)
                 self.save_checkpoint(epoch + 1)
 
     def evaluate(self, data: DataLoader, epoch: int = None) -> None:
         with self.module.on_val():
-            with tqdm(total=len(data), desc=f"Eval epoch {epoch: 04d}") as tbar:
+            with tqdm(total=len(data), desc=f"Val epoch {epoch: 04d}") as tbar:
                 for batch_idx, batch in enumerate(data):
                     self.module.val_step(batch, batch_idx=batch_idx, epoch_idx=epoch)
                     logs = self.module.get_batch_log()
